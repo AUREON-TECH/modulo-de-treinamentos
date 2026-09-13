@@ -17,7 +17,7 @@
   };
 
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('sw.js?v=8-private-vary-range-safe-shell',{updateViaCache:'none'})
+    navigator.serviceWorker.register('sw.js?v=9-private-vary-range-safe-shell',{updateViaCache:'none'})
       .then(registration=>registration.update())
       .catch(()=>{});
   });
