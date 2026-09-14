@@ -46,3 +46,10 @@ jobs:
           grep -q "content-range" sw.js
           grep -q "request.mode==='navigate'" sw.js
           grep -q "CORE_PATHS" sw.js
+      - name: Validate installed app update lifecycle
+        run: |
+          grep -q "visibilitychange" pwa.js
+          grep -q "document.visibilityState==='visible'" pwa.js
+          grep -q "registration.update()" pwa.js
+          grep -q "controllerchange" pwa.js
+          grep -q "navigator.serviceWorker.controller" pwa.js
