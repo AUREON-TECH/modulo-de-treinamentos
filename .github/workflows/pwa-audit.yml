@@ -35,8 +35,8 @@ jobs:
           PY
       - name: Validate service worker safety and version alignment
         run: |
-          grep -q "v9-private-vary-range-safe-shell" sw.js
-          grep -q "sw.js?v=9-private-vary-range-safe-shell" pwa.js
+          grep -q "v10-update-lifecycle-safe-shell" sw.js
+          grep -q "sw.js?v=10-update-lifecycle-safe-shell" pwa.js
           grep -q "updateViaCache:'none'" pwa.js
           grep -q "authorization" sw.js
           grep -q "cookie" sw.js
