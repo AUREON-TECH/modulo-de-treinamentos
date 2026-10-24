@@ -86,6 +86,74 @@ closer:[
 ['closer-6.3','Próximos passos e pós-venda','Explique o que acontecerá a seguir e como o cliente pode pedir ajuda ou esclarecer dúvidas.']],quiz:{q:'Depois do sim, a prioridade é:',o:['Encerrar rápido','Garantir entendimento e próximos passos claros','Adicionar novas condições'],a:1}}
 ]};
 
+
+const FIELD_PRACTICES={
+captador:[
+'Antes do turno, defina um objetivo de abordagens e observe o fluxo no PARK ou na EXTERNA. Não confunda quantidade de abordagens com casais qualificados.',
+'Em dupla, pratique uma abertura de até 20 segundos. A outra pessoa deve poder recusar sem constrangimento.',
+'Faça uma simulação de qualificação usando apenas os critérios oficiais vigentes. Nunca invente perfil, renda ou respostas.',
+'Simule as objeções “sem tempo” e “não tenho interesse”. Ouça, esclareça e aceite a decisão do visitante.',
+'Explique o encaminhamento para a sala, incluindo o que o casal pode esperar e o tempo informado pela operação.',
+'No fim do turno, anote oportunidades, abordagens, casais encaminhados e um comportamento para melhorar amanhã.'
+],
+liner:[
+'Faça uma recepção simulada: apresente-se, explique a jornada e confirme as expectativas de tempo.',
+'Em dupla, pratique três perguntas abertas e um resumo do que ouviu, sem interromper o casal.',
+'Construa um diagnóstico sobre objetivos e prioridades, sem solicitar dados que não sejam necessários.',
+'Escolha uma característica real da experiência e traduza em benefício relevante, sem criar promessas.',
+'Simule uma dúvida difícil e pratique dizer “vou confirmar essa informação” quando necessário.',
+'Prepare uma passagem de bastão que registre interesse, prioridades e dúvidas relevantes ao Closer.'
+],
+closer:[
+'Pratique pedir uma decisão sem pressionar, deixando espaço para o cliente recusar.',
+'Faça um exercício de escuta das duas pessoas do casal, sem presumir quem decide.',
+'Explique um exemplo de proposta com benefícios e limitações verificáveis; não crie preço ou condição.',
+'Simule a pergunta “precisamos pensar” e investigue o que falta esclarecer, sem falsa urgência.',
+'Revise uma proposta de treinamento e identifique preço, prazo, encargos e condições de cancelamento.',
+'Simule a formalização: peça ao cliente para resumir o que entendeu e apresente os canais de suporte.'
+]
+};
+const KNOWLEDGE_CHECKS={
+captador:[
+['Qual métrica ajuda a avaliar o processo do captador?',['Abordagens e encaminhamentos qualificados','Apenas o número de visitantes da cidade','Apenas o VGV da sala'],0],
+['Qual atitude respeita a liberdade do visitante?',['Bloquear a passagem','Aceitar a recusa sem insistência','Seguir o visitante até ele aceitar'],1],
+['Se um casal não atende aos critérios reais de perfil, o correto é:',['Alterar o cadastro','Ignorar a diferença','Registrar corretamente e não qualificá-lo'],2],
+['Diante da objeção “sem tempo”, você deve:',['Esclarecer duração real e respeitar a decisão','Prometer uma duração que não conhece','Criar pressão para impedir a saída'],0],
+['Uma passagem de bastão confiável inclui:',['Promessas extras','O que foi efetivamente combinado','Condições comerciais inventadas'],1],
+['Após o turno, qual prática favorece a evolução?',['Ignorar os resultados','Mudar tudo sem analisar','Revisar indicadores e escolher melhoria concreta'],2]
+],
+liner:[
+['No início do atendimento, qual a prioridade?',['Criar confiança e alinhar a experiência','Pedir decisão de compra','Evitar explicar o processo'],0],
+['O que demonstra escuta ativa?',['Interromper a resposta','Confirmar o entendimento com o casal','Seguir roteiro sem adaptar'],1],
+['Um diagnóstico útil identifica:',['A opinião do profissional','Suposições sem confirmação','Necessidades e prioridades reais do casal'],2],
+['Uma apresentação responsável usa:',['Informações verificáveis e relevantes','Promessas não autorizadas','Somente argumentos emocionais'],0],
+['Quando não sabe uma condição, você deve:',['Inventar uma resposta','Verificar antes de afirmar','Omitir a dúvida'],1],
+['Na transição ao Closer, o mais importante é:',['Reiniciar toda a conversa','Ocultar dúvidas pendentes','Transmitir o contexto de modo fiel'],2]
+],
+closer:[
+['A postura adequada ao pedir decisão é:',['Ser claro e respeitar a escolha','Criar ameaça fictícia','Impedir que o casal converse'],0],
+['Quem deve participar de uma decisão conjunta?',['Só quem fala mais','Todos os envolvidos na decisão','Só quem parece ter maior renda'],1],
+['Qual prática mantém transparência sobre valor?',['Ocultar condições','Usar uma comparação fictícia','Explicar benefícios e limitações reais'],2],
+['Depois de responder a uma objeção, o próximo passo é:',['Verificar se a dúvida foi esclarecida','Aumentar o tom de voz','Mudar o assunto'],0],
+['Uma concessão comercial deve ser:',['Inventada para fechar','Real e autorizada','Prometida sem registro'],1],
+['Depois do aceite, é essencial:',['Encerrar sem documentos','Acrescentar condições','Confirmar entendimento e próximos passos'],2]
+]};
+function moduleQuestions(m){
+  const [track,number]=m.id.split('-'),extra=KNOWLEDGE_CHECKS[track]?.[Number(number)-1];
+  return [m.quiz, ...(extra?[{q:extra[0],o:extra[1],a:extra[2]}]:[])];
+}
+let currentExam=null;
+function displayExam(){
+  if(!currentExam)return;
+  const {m,questions,index,answers}=currentExam,q=questions[index];
+  quizContent.innerHTML=`<div class="quiz-status">AVALIAÇÃO • ${trackLabel(S.profile.track).toUpperCase()} • ${index+1}/${questions.length}</div>
+    <div class="progress-track"><div class="progress-bar" style="width:${Math.round(index/questions.length*100)}%"></div></div>
+    <h2>${safe(q.q)}</h2>
+    ${q.o.map((o,i)=>`<button class="answer-btn" onclick="answerQuiz('${m.id}',${i})">${String.fromCharCode(65+i)}. ${safe(o)}</button>`).join('')}
+    <p>Nota mínima: 70%. Respostas são registradas após a conclusão da avaliação.</p>
+    <button class="ghost-btn" onclick="quizDialog.close()">Fechar</button>`;
+}
+
 const SCENARIOS=[
 {track:'captador',q:'O casal responde: “Estamos com pressa, só estamos passeando.”',answers:[['Entendo. Em 20 segundos eu explico e vocês decidem se faz sentido.',true],['Então vocês não têm interesse nenhum?',false],['Mas vocês precisam parar para me ouvir.',false]],tip:'Valide a pressa e peça um microespaço de tempo. O objetivo é reduzir resistência, não confrontar.'},
 {track:'captador',q:'A pessoa diz: “Não quero comprar nada.”',answers:[['Perfeito. Posso só explicar rapidamente a experiência e vocês decidem se faz sentido?',true],['Mas eu nem falei o preço ainda!',false],['Se não quer comprar, deixa pra lá.',false]],tip:'Esclareça a intenção e preserve leveza. Não discuta com a objeção.'},
@@ -300,7 +368,7 @@ function moduleView(key){
   <div class="section-head"><div><h2>Aulas</h2><p>Leia o conteúdo e registre sua conclusão.</p></div></div>
   <section class="lesson-list">${m.lessons.map((l,i)=>`<article class="card lesson ${lessonDone(l[0])?'done':''}">
     <div class="lesson-icon">${lessonDone(l[0])?'✓':String(i+1).padStart(2,'0')}</div>
-    <div><strong>${safe(l[1])}</strong><p>${safe(l[2])}</p></div>
+    <div><strong>${safe(l[1])}</strong><p>${safe(l[2])}</p><div class="practice-note"><strong>Aplicação no campo</strong><p>${safe(FIELD_PRACTICES[S.profile.track]?.[Number(m.id.split('-')[1])-1]||'Pratique este conceito com seu líder.')}</p><p><strong>Atividade:</strong> Reescreva com suas palavras como aplicaria o aprendizado no seu próximo atendimento e só então marque a aula como concluída.</p></div></div>
     <button class="${lessonDone(l[0])?'ghost-btn':'secondary-btn'}" onclick="completeLesson('${m.id}','${l[0]}')" ${lessonDone(l[0])?'disabled':''}>${lessonDone(l[0])?'Concluída':'Concluir aula'}</button>
   </article>`).join('')}</section>
   <div class="section-head"><div><h2>Validação</h2><p>Aprovação mínima: 70%.</p></div></div>
@@ -316,28 +384,31 @@ async function completeLesson(moduleKey,lessonKey){
   await refreshLeaderboard();
 }
 
+
 function openQuiz(moduleKey){
-  const m=modules().find(x=>x.id===moduleKey);if(!m)return;
-  quizContent.innerHTML=`<div class="quiz-status">QUIZ • ${trackLabel(S.profile.track).toUpperCase()}</div><h2>${safe(m.quiz.q)}</h2>
-  ${m.quiz.o.map((o,i)=>`<button class="answer-btn" onclick="answerQuiz('${m.id}',${i})">${String.fromCharCode(65+i)}. ${safe(o)}</button>`).join('')}
-  <button class="ghost-btn" onclick="quizDialog.close()">Fechar</button>`;
-  quizDialog.showModal();
+ const m=modules().find(x=>x.id===moduleKey);if(!m)return;
+ currentExam={m,questions:moduleQuestions(m),index:0,answers:[]};
+ displayExam();if(!quizDialog.open)quizDialog.showModal();
 }
-
 async function answerQuiz(moduleKey,index){
-  const m=modules().find(x=>x.id===moduleKey),ok=index===m.quiz.a,prev=S.quiz[moduleKey],attempts=(prev?.attempts||0)+1;
-  const score=ok?100:Math.max(prev?.score||0,0),payload={user_id:S.user.id,module_key:moduleKey,track:S.profile.track,score,attempts,passed_at:ok?(prev?.passed_at||new Date().toISOString()):prev?.passed_at||null,updated_at:new Date().toISOString()};
-  const {error}=await db.from('capta_academy_quiz_results').upsert(payload,{onConflict:'user_id,module_key'});
-  if(error){toast('Erro ao registrar quiz.','error');return;}
-  S.quiz[moduleKey]=payload;
-  if(ok){
-    quizContent.innerHTML=`<div class="brand-mark big success-mark">✓</div><h2>Módulo validado!</h2><p>Resposta correta. ${prev?.score>=70?'Sua aprovação continua registrada.':`Você conquistou <strong>+${m.xp} XP</strong>.`}</p><button class="primary-btn" onclick="quizDialog.close();location.hash='trilhas'">Continuar jornada</button>`;
-    await refreshLeaderboard();
-  }else{
-    quizContent.innerHTML=`<div class="quiz-status">REVISAR E TENTAR NOVAMENTE</div><h2>Quase.</h2><p>A resposta ideal prioriza clareza, respeito e entendimento do cliente.</p><button class="primary-btn" onclick="openQuiz('${m.id}')">Tentar novamente</button>`;
-  }
+ const e=currentExam;if(!e||e.m.id!==moduleKey)return;
+ e.answers.push(index);e.index++;
+ if(e.index<e.questions.length){displayExam();return;}
+ const m=e.m,correct=e.questions.filter((q,i)=>q.a===e.answers[i]).length;
+ const rawScore=Math.round(correct/e.questions.length*100),ok=rawScore>=70;
+ const prev=S.quiz[moduleKey],attempts=(prev?.attempts||0)+1;
+ const score=Math.max(rawScore,prev?.score||0);
+ const payload={user_id:S.user.id,module_key:moduleKey,track:S.profile.track,score,attempts,passed_at:ok?(prev?.passed_at||new Date().toISOString()):prev?.passed_at||null,updated_at:new Date().toISOString()};
+ const {error}=await db.from('capta_academy_quiz_results').upsert(payload,{onConflict:'user_id,module_key'});
+ if(error){toast('Erro ao registrar avaliação.','error');return;}
+ S.quiz[moduleKey]=payload;
+ quizContent.innerHTML=`<div class="quiz-status">RESULTADO DA AVALIAÇÃO</div><h2>${rawScore}% de aproveitamento</h2>
+ <p>Você acertou ${correct} de ${e.questions.length} questões. ${ok?'Aprovado!':'Revise as aulas e tente novamente.'}</p>
+ <p>Nota mínima: 70%. ${prev?.score>=70?'Sua aprovação anterior foi preservada.':''}</p>
+ <button class="primary-btn" onclick="quizDialog.close();location.hash='trilhas'">Voltar à trilha</button>
+ <button class="secondary-btn" onclick="openQuiz('${m.id}')">Refazer avaliação</button>`;
+ if(ok)await refreshLeaderboard();
 }
-
 async function refreshLeaderboard(){
   const r=await db.from('capta_academy_leaderboard').select('*').order('xp',{ascending:false}).limit(100);
   if(!r.error)S.leaderboard=r.data||[];
