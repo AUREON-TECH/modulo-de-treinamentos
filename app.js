@@ -543,6 +543,7 @@ async function gestor(){
   <section class="manager-table card"><div class="table-head" style="grid-template-columns:1.6fr .75fr .7fr .7fr 1.2fr"><span>Profissional</span><span>Trilha</span><span>Aulas</span><span>Provas</span><span>Situação</span></div>
   ${rows.map(v=>`<div class="table-row" style="grid-template-columns:1.6fr .75fr .7fr .7fr 1.2fr"><span><strong>${safe(v.p.display_name||v.r?.display_name||'Profissional')}</strong></span><span>${safe(trackLabel(v.p.track))}</span><span>${Number(v.r?.lessons_completed||0)}</span><span>${Number(v.r?.quizzes_passed||0)}</span><span>${status(v)}</span></div>`).join('')||'<div class="empty">Nenhum profissional cadastrado.</div>'}</section>
   <div class="section-head"><div><h2>Distribuição da equipe</h2><p>Trilhas cadastradas: Captador, Liner e Closer.</p></div></div><section class="track-cards">${Object.keys(TRACK_LABELS).map(k=>`<div class="card"><small>${TRACK_LABELS[k]}</small><strong>${ps.filter(p=>p.track===k).length}</strong><span>profissionais</span></div>`).join('')}</section>
+  <section class="card certificate-teaser" style="margin-top:18px"><div><div class="cert-icon">▤</div><div><strong>RAIO X + CAPTA EVOLVE</strong><p>Compare os indicadores comerciais do mês com o histórico de aprendizagem disponível.</p></div></div><a href="#raiox" class="primary-btn">Comparar resultados</a></section>
   <div class="section-head"><div><h2>Gestão das salas e lideranças</h2><p>Vincule contas já cadastradas à sala e conceda supervisão somente aos líderes autorizados.</p></div></div>
   <form id="roomAssignment" class="card form-card" style="grid-template-columns:1.5fr 1fr 1fr auto"><label>E-mail da conta<input type="email" name="email" placeholder="profissional@empresa.com" required></label><label>Sala<select name="room"><option>DREAM HOUSE</option><option>ROMANTIC</option></select></label><label>Tipo<select name="type"><option value="member">Profissional</option><option value="leader">Líder</option></select></label><button class="primary-btn" type="submit">Autorizar</button></form>
   <div class="section-head"><div><h2>Publicação de videoaulas</h2><p>Vincule vídeos do YouTube ou Vimeo aos roteiros existentes. Sem vídeo publicado, o roteiro continua disponível.</p></div></div>
@@ -574,6 +575,26 @@ async function printLevelCert(level){
  if(error||!data){toast('Certificado não encontrado.','error');return}
  setNav('perfil');
  app.innerHTML=`<section class="certificate-page"><div class="certificate card"><div class="cert-top"><span class="brand-mark big">C</span><div><b>CAPTA EVOLVE</b><small>UNIVERSIDADE CORPORATIVA</small></div></div><div class="cert-seal">✦</div><p class="cert-label">CERTIFICADO DE EVOLUÇÃO</p><h1>${safe(S.profile.display_name)}</h1><p>Concluiu os requisitos de formação do nível</p><h2>${safe(level.toUpperCase())}</h2><p>Trilha: ${safe(trackLabel(data.track))}</p><div class="cert-footer"><div><small>EMISSÃO</small><strong>${new Date(data.issued_at).toLocaleDateString('pt-BR')}</strong></div><div><small>CÓDIGO</small><strong>${safe(data.certificate_code)}</strong></div></div></div><div class="cert-actions"><a href="#niveis" class="secondary-btn">Voltar</a><button class="primary-btn" onclick="window.print()">Imprimir / salvar PDF</button></div></section>`;
+}
+
+
+async function raioxCompare(month='2026-11-01'){
+ if(!S.isManager){location.hash='home';return}
+ setNav('');app.innerHTML='<div class="loader"><div class="spinner"></div><strong>Consultando indicadores do RAIO X...</strong></div>';
+ const {data,error}=await db.rpc('capta_academy_raiox_compare',{p_month:month});
+ if(error){app.innerHTML='<div class="empty">Não foi possível consultar o RAIO X com sua conta.</div>';return}
+ const rows=data||[],linked=rows.filter(r=>r.academy_name!=null);
+ const totalCouples=rows.reduce((n,r)=>n+Number(r.couples||0),0);
+ const totalSales=rows.reduce((n,r)=>n+Number(r.sales||0),0);
+ const totalVgv=rows.reduce((n,r)=>n+Number(r.vgv||0),0);
+ app.innerHTML=`<section class="hero compact"><div class="eyebrow">CAPTA EVOLVE + RAIO X</div><h1>Performance e aprendizado</h1><p>Comparativo de dados comerciais registrados no RAIO X com a evolução dos treinamentos. O vínculo entre sistemas exige correspondência exata de nomes; nenhum vínculo é presumido.</p><div class="hero-actions"><a class="secondary-btn" href="#gestor">Voltar à gestão</a><a class="secondary-btn" href="https://aureon-tech.github.io/RAIO-X/" target="_blank" rel="noopener noreferrer">Abrir RAIO X</a></div></section>
+ <section class="card" style="padding:18px"><label style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">Mês <select id="raioxMonth" style="background:#0b1727;color:#fff;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.2)"><option value="2026-11-01" ${month==='2026-11-01'?'selected':''}>Novembro/2026</option><option value="2026-10-01" ${month==='2026-10-01'?'selected':''}>Outubro/2026</option><option value="2026-09-01" ${month==='2026-09-01'?'selected':''}>Setembro/2026</option></select></label></section>
+ <section class="stats"><div class="stat-card"><small>Registros RAIO X</small><strong>${rows.length}</strong></div><div class="stat-card"><small>Casais</small><strong>${totalCouples.toLocaleString('pt-BR')}</strong></div><div class="stat-card"><small>Vendas</small><strong>${totalSales.toLocaleString('pt-BR')}</strong></div><div class="stat-card"><small>VGV informado</small><strong>${totalVgv.toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0})}</strong></div></section>
+ <div class="notice">Correspondências verificadas por nome: ${linked.length}/${rows.length}. “Sem vínculo” não significa que o profissional não treinou; significa apenas que os nomes não correspondem. Valores de VGV refletem a origem RAIO X, sem ajuste de cancelamentos nesta tela.</div>
+ <div class="section-head"><div><h2>Comparativo individual</h2><p>Dados da competência selecionada e totais de aulas/provas aprovadas no CAPTA EVOLVE.</p></div></div>
+ <section class="manager-table card"><div class="table-head" style="grid-template-columns:2fr .7fr .7fr .9fr 1fr"><span>Profissional</span><span>Casais</span><span>Vendas</span><span>VGV</span><span>Treinamento</span></div>
+ ${rows.map(r=>`<div class="table-row" style="grid-template-columns:2fr .7fr .7fr .9fr 1fr"><span>${safe(r.professional_name)}<small style="display:block;color:#91a6bc">${safe(r.role||'')}</small></span><span>${Number(r.couples||0)}</span><span>${Number(r.sales||0)}</span><span>${Number(r.vgv||0).toLocaleString('pt-BR',{maximumFractionDigits:0})}</span><span>${r.academy_name!=null?Number(r.lessons_completed)+' aulas / '+Number(r.quizzes_passed)+' provas':'Sem vínculo'}</span></div>`).join('')||'<div class="empty">Sem dados para este mês.</div>'}</section>`;
+ document.getElementById('raioxMonth').onchange=e=>raioxCompare(e.target.value);
 }
 
 async function supervisorPanel(){
@@ -618,6 +639,7 @@ function renderRoute(){
   else if(r==='perfil')perfil();
   else if(r==='certificado')certificado();
   else if(r==='niveis')certificadosNivel();
+  else if(r==='raiox')S.isManager?raioxCompare():home();
   else if(r==='gestor')S.isManager?gestor():S.isSupervisor?supervisorPanel():home();
   else home();
 }
