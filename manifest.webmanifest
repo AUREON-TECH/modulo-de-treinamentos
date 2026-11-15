@@ -1,8 +1,8 @@
 {
   "id": "capta-academy",
-  "name": "CAPTA 360 | Captação e Vendas",
-  "short_name": "CAPTA 360",
-  "description": "Central da operação: captação, qualificação, atendimento, vendas, processos e desenvolvimento profissional.",
+  "name": "CAPTA EVOLVE | Educação em Captação e Vendas",
+  "short_name": "CAPTA EVOLVE",
+  "description": "Ensinar, aprender e evoluir. Trilhas, simulações, conhecimento e desenvolvimento profissional em captação e vendas.",
   "start_url": "./#home",
   "scope": "./",
   "display": "standalone",
