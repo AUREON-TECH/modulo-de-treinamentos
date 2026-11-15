@@ -587,14 +587,24 @@ async function raioxCompare(month='2026-11-01'){
  const totalCouples=rows.reduce((n,r)=>n+Number(r.couples||0),0);
  const totalSales=rows.reduce((n,r)=>n+Number(r.sales||0),0);
  const totalVgv=rows.reduce((n,r)=>n+Number(r.vgv||0),0);
- app.innerHTML=`<section class="hero compact"><div class="eyebrow">CAPTA EVOLVE + RAIO X</div><h1>Performance e aprendizado</h1><p>Comparativo de dados comerciais registrados no RAIO X com a evolução dos treinamentos. O vínculo entre sistemas exige correspondência exata de nomes; nenhum vínculo é presumido.</p><div class="hero-actions"><a class="secondary-btn" href="#gestor">Voltar à gestão</a><a class="secondary-btn" href="https://aureon-tech.github.io/RAIO-X/" target="_blank" rel="noopener noreferrer">Abrir RAIO X</a></div></section>
+ app.innerHTML=`<section class="hero compact"><div class="eyebrow">CAPTA EVOLVE + RAIO X</div><h1>Performance e aprendizado</h1><p>Comparativo de dados comerciais registrados no RAIO X com a evolução dos treinamentos. O vínculo entre sistemas é autorizado manualmente pelo gestor para evitar associações incorretas.</p><div class="hero-actions"><a class="secondary-btn" href="#gestor">Voltar à gestão</a><a class="secondary-btn" href="https://aureon-tech.github.io/RAIO-X/" target="_blank" rel="noopener noreferrer">Abrir RAIO X</a></div></section>
  <section class="card" style="padding:18px"><label style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">Mês <select id="raioxMonth" style="background:#0b1727;color:#fff;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.2)"><option value="2026-11-01" ${month==='2026-11-01'?'selected':''}>Novembro/2026</option><option value="2026-10-01" ${month==='2026-10-01'?'selected':''}>Outubro/2026</option><option value="2026-09-01" ${month==='2026-09-01'?'selected':''}>Setembro/2026</option></select></label></section>
  <section class="stats"><div class="stat-card"><small>Registros RAIO X</small><strong>${rows.length}</strong></div><div class="stat-card"><small>Casais</small><strong>${totalCouples.toLocaleString('pt-BR')}</strong></div><div class="stat-card"><small>Vendas</small><strong>${totalSales.toLocaleString('pt-BR')}</strong></div><div class="stat-card"><small>VGV informado</small><strong>${totalVgv.toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0})}</strong></div></section>
- <div class="notice">Correspondências verificadas por nome: ${linked.length}/${rows.length}. “Sem vínculo” não significa que o profissional não treinou; significa apenas que os nomes não correspondem. Valores de VGV refletem a origem RAIO X, sem ajuste de cancelamentos nesta tela.</div>
+ <div class="notice">Contas vinculadas pela gestão: ${linked.length}/${rows.length}. “Sem vínculo” não significa que o profissional não treinou; significa que o gestor ainda não vinculou a conta correspondente. Valores de VGV refletem a origem RAIO X, sem ajuste de cancelamentos nesta tela.</div>
+ <div class="section-head"><div><h2>Vincular profissional à Academia</h2><p>Informe o e-mail da conta CAPTA EVOLVE e o nome exato usado no RAIO X.</p></div></div>
+ <form id="raioxLinkForm" class="card form-card" style="grid-template-columns:1.5fr 1.5fr auto"><label>E-mail no CAPTA EVOLVE<input type="email" name="email" placeholder="profissional@empresa.com" required></label><label>Nome profissional no RAIO X<input type="text" name="professional" maxlength="120" required placeholder="Nome como aparece no RAIO X"></label><button type="submit" class="primary-btn">Vincular</button></form>
  <div class="section-head"><div><h2>Comparativo individual</h2><p>Dados da competência selecionada e totais de aulas/provas aprovadas no CAPTA EVOLVE.</p></div></div>
  <section class="manager-table card"><div class="table-head" style="grid-template-columns:2fr .7fr .7fr .9fr 1fr"><span>Profissional</span><span>Casais</span><span>Vendas</span><span>VGV</span><span>Treinamento</span></div>
  ${rows.map(r=>`<div class="table-row" style="grid-template-columns:2fr .7fr .7fr .9fr 1fr"><span>${safe(r.professional_name)}<small style="display:block;color:#91a6bc">${safe(r.role||'')}</small></span><span>${Number(r.couples||0)}</span><span>${Number(r.sales||0)}</span><span>${Number(r.vgv||0).toLocaleString('pt-BR',{maximumFractionDigits:0})}</span><span>${r.academy_name!=null?Number(r.lessons_completed)+' aulas / '+Number(r.quizzes_passed)+' provas':'Sem vínculo'}</span></div>`).join('')||'<div class="empty">Sem dados para este mês.</div>'}</section>`;
  document.getElementById('raioxMonth').onchange=e=>raioxCompare(e.target.value);
+ document.getElementById('raioxLinkForm').onsubmit=async e=>{
+  e.preventDefault();const f=new FormData(e.currentTarget),btn=e.currentTarget.querySelector('button');
+  setBusy(btn,true,'Vinculando...');
+  const {error}=await db.rpc('capta_academy_link_raiox',{p_email:String(f.get('email')).trim(),p_professional_name:String(f.get('professional')).trim()});
+  setBusy(btn,false);
+  if(error){toast(String(error.message).includes('account_not_found')?'Conta não cadastrada no CAPTA EVOLVE.':String(error.message).includes('raiox_professional_not_found')?'Nome não encontrado no RAIO X.':'Vínculo não autorizado ou já utilizado.','error');return}
+  toast('Vínculo confirmado.','success');raioxCompare(month);
+ };
 }
 
 async function supervisorPanel(){
