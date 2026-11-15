@@ -225,7 +225,7 @@ function authScreen(message=''){
   app.innerHTML=`<section class="auth-page">
     <div class="auth-glow one"></div><div class="auth-glow two"></div>
     <div class="auth-card">
-      <div class="auth-brand"><span class="brand-mark big">C</span><div><b>CAPTA ACADEMY</b><small>Performance Learning System</small></div></div>
+      <div class="auth-brand"><span class="brand-mark big">C</span><div><b>CAPTA 360</b><small>CENTRAL DE CAPTAÇÃO E VENDAS</small></div></div>
       <div class="eyebrow">UNIVERSIDADE INTERNA</div>
       <h1>${signup?'Crie seu acesso':'Entre na sua jornada'}</h1>
       <p>${signup?'Seu progresso, XP, ranking e certificados ficam salvos na nuvem.':'Continue exatamente de onde parou, em qualquer dispositivo.'}</p>
@@ -334,8 +334,8 @@ function home(){
   const pos=S.leaderboard.findIndex(x=>x.user_id===S.user.id)+1;
   app.innerHTML=`<section class="hero hero-dashboard">
     <div><div class="eyebrow">${trackLabel(S.profile.track).toUpperCase()} • TRILHA ATIVA</div>
-    <h1>Vamos evoluir, ${safe(firstName())}.</h1>
-    <p>${TRACK_SUBTITLES[S.profile.track]}. Aprenda, simule, valide e leve para o campo.</p>
+    <h1>Central de Captação e Vendas</h1>
+    <p>${safe(firstName())}, acesse processos, orientações e treinamentos de toda a jornada comercial — da abordagem ao fechamento.</p>
     <div class="hero-actions"><button class="primary-btn" onclick="location.hash='modulo-${next.id}'">Continuar treinamento</button><button class="secondary-btn" onclick="location.hash='simulador'">Treinar cenário</button></div></div>
     <div class="level-orb"><small>NÍVEL</small><strong>${Math.max(1,Math.floor(t.xp/1200)+1)}</strong><span>${t.xp.toLocaleString('pt-BR')} XP</span></div>
   </section>
@@ -344,6 +344,15 @@ function home(){
     <div class="stat-card"><small>XP</small><strong>${t.xp.toLocaleString('pt-BR')}</strong><span>calculado na nuvem</span></div>
     <div class="stat-card"><small>Ranking</small><strong>${pos?`#${pos}`:'—'}</strong><span>${row?.quizzes_passed||0} quizzes aprovados</span></div>
     <div class="stat-card"><small>Simulador</small><strong>${S.sim.total?Math.round(S.sim.hits/S.sim.total*100):0}%</strong><span>${S.sim.hits||0}/${S.sim.total||0} decisões corretas</span></div>
+  </section>
+  <div class="section-head"><div><h2>Operação 360</h2><p>Referência rápida de captação, atendimento e vendas. Regras e campanhas devem ser confirmadas com a gestão.</p></div></div>
+  <section class="grid operational-grid">
+    <article class="card"><div class="eyebrow">01 • CAPTAÇÃO</div><h3>Abordagem e experiência</h3><p>Identifique oportunidades, apresente o convite com clareza, respeite o cliente e explique a experiência sem promessas indevidas.</p><a href="#trilhas" class="secondary-btn">Trilha de captação</a></article>
+    <article class="card"><div class="eyebrow">02 • QUALIFICAÇÃO</div><h3>Perfil e agendamento</h3><p>Confirme os critérios vigentes, registre dados verdadeiros e assegure entendimento sobre horário, local e condições do atendimento.</p><a href="#trilhas" class="secondary-btn">Praticar qualificação</a></article>
+    <article class="card"><div class="eyebrow">03 • LINER</div><h3>Recepção e diagnóstico</h3><p>Faça a passagem de informações, investigue interesses, apresente benefícios adequados e esclareça dúvidas com transparência.</p><a href="#trilhas" class="secondary-btn">Trilhas profissionais</a></article>
+    <article class="card"><div class="eyebrow">04 • CLOSER</div><h3>Proposta e fechamento</h3><p>Explique preço, condições, obrigações e cancelamento; confirme a decisão consciente e a documentação correta.</p><a href="#simulador" class="secondary-btn">Simular objeções</a></article>
+    <article class="card"><div class="eyebrow">05 • GESTÃO</div><h3>Rotina de resultados</h3><p>Acompanhe atendimentos, qualificação, conversão e qualidade do processo. Registre oportunidades de melhoria sem alterar dados históricos.</p><a href="#ranking" class="secondary-btn">Acompanhar evolução</a></article>
+    <article class="card"><div class="eyebrow">06 • CAPACITAÇÃO</div><h3>Aprender e certificar</h3><p>Continue aulas, exercícios, simulados, conquistas e certificações específicas de captadores, liners e closers.</p><a href="#trilhas" class="secondary-btn">Ver treinamentos</a></article>
   </section>
   <div class="section-head"><div><h2>Próximas etapas</h2><p>O próximo módulo só abre depois das aulas e do quiz.</p></div><a href="#trilhas">Ver tudo</a></div>
   <section class="grid">${list.slice(0,3).map(moduleCard).join('')}</section>
@@ -475,7 +484,7 @@ function certificado(){
   if(cert){
     const date=new Date(cert.issued_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
     app.innerHTML=`<section class="certificate-page"><div class="certificate card">
-      <div class="cert-top"><span class="brand-mark big">C</span><div><b>CAPTA ACADEMY</b><small>CERTIFICADO DIGITAL</small></div></div>
+      <div class="cert-top"><span class="brand-mark big">C</span><div><b>CAPTA 360</b><small>CERTIFICADO DIGITAL</small></div></div>
       <div class="cert-seal">✦</div><p class="cert-label">CERTIFICAMOS QUE</p><h1>${safe(S.profile.display_name)}</h1>
       <p>concluiu integralmente a trilha profissional de</p><h2>${trackLabel(cert.track).toUpperCase()}</h2>
       <p class="cert-desc">${TRACK_SUBTITLES[cert.track]}, com aulas, avaliações e prática em simulador.</p>
