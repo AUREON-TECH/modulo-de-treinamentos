@@ -354,6 +354,7 @@ function home(){
     <div class="stat-card"><small>Ranking</small><strong>${pos?`#${pos}`:'—'}</strong><span>${row?.quizzes_passed||0} quizzes aprovados</span></div>
     <div class="stat-card"><small>Simulador</small><strong>${S.sim.total?Math.round(S.sim.hits/S.sim.total*100):0}%</strong><span>${S.sim.hits||0}/${S.sim.total||0} decisões corretas</span></div>
   </section>
+  <section class="card certificate-teaser" style="margin-bottom:16px"><div><div class="cert-icon">▶</div><div><strong>Biblioteca de videoaulas</strong><p>Roteiros, conteúdos por função e vídeos publicados pela gestão.</p></div></div><a href="#videoaulas" class="primary-btn">Acessar aulas</a></section>
   <section class="card certificate-teaser"><div><div class="cert-icon">◎</div><div><strong>Laboratório de Campo</strong><p>Novos treinamentos interativos para praticar situações reais.</p></div></div><a href="#laboratorio" class="primary-btn">Começar</a></section>
   <div class="section-head"><div><h2>Conhecimento para evoluir</h2><p>Referência rápida de captação, atendimento e vendas. Regras e campanhas devem ser confirmadas com a gestão.</p></div></div>
   <section class="grid operational-grid">
@@ -375,7 +376,7 @@ function trilhas(){
   const t=totals();
   app.innerHTML=`<section class="hero compact"><div class="eyebrow">JORNADA PROFISSIONAL</div><h1>Trilha de ${trackLabel(S.profile.track)}</h1><p>${TRACK_SUBTITLES[S.profile.track]}. São ${modules().length} módulos e ${t.lessonTotal} aulas.</p></section>
   <div class="track-switcher">${Object.keys(TRACK_LABELS).map(k=>`<button class="${S.profile.track===k?'active':''}" onclick="switchTrack('${k}')"><b>${TRACK_LABELS[k]}</b><small>${TRACK_SUBTITLES[k]}</small></button>`).join('')}</div>
-  <section class="grid">${modules().map(moduleCard).join('')}</section><section class="card certificate-teaser" style="margin-top:20px"><div><div class="cert-icon">◎</div><div><strong>Treino prático</strong><p>Situações reais, protocolos e desafios interativos.</p></div></div><a href="#laboratorio" class="primary-btn">Abrir laboratório</a></section>`;
+  <section class="grid">${modules().map(moduleCard).join('')}</section><section class="card certificate-teaser" style="margin-top:20px"><div><div class="cert-icon">▶</div><div><strong>Biblioteca de videoaulas</strong><p>Roteiros por função com vídeos disponibilizados pela gestão.</p></div></div><a href="#videoaulas" class="primary-btn">Abrir biblioteca</a></section><section class="card certificate-teaser" style="margin-top:20px"><div><div class="cert-icon">◎</div><div><strong>Treino prático</strong><p>Situações reais, protocolos e desafios interativos.</p></div></div><a href="#laboratorio" class="primary-btn">Abrir laboratório</a></section>`;
 }
 
 function moduleView(key){
@@ -543,7 +544,10 @@ async function gestor(){
   <div class="section-head"><div><h2>Distribuição da equipe</h2><p>Trilhas cadastradas: Captador, Liner e Closer.</p></div></div><section class="track-cards">${Object.keys(TRACK_LABELS).map(k=>`<div class="card"><small>${TRACK_LABELS[k]}</small><strong>${ps.filter(p=>p.track===k).length}</strong><span>profissionais</span></div>`).join('')}</section>
   <div class="section-head"><div><h2>Gestão das salas e lideranças</h2><p>Vincule contas já cadastradas à sala e conceda supervisão somente aos líderes autorizados.</p></div></div>
   <form id="roomAssignment" class="card form-card" style="grid-template-columns:1.5fr 1fr 1fr auto"><label>E-mail da conta<input type="email" name="email" placeholder="profissional@empresa.com" required></label><label>Sala<select name="room"><option>DREAM HOUSE</option><option>ROMANTIC</option></select></label><label>Tipo<select name="type"><option value="member">Profissional</option><option value="leader">Líder</option></select></label><button class="primary-btn" type="submit">Autorizar</button></form>
+  <div class="section-head"><div><h2>Publicação de videoaulas</h2><p>Vincule vídeos do YouTube ou Vimeo aos roteiros existentes. Sem vídeo publicado, o roteiro continua disponível.</p></div></div>
+  <form id="videoManage" class="card form-card" style="grid-template-columns:1.2fr 2fr auto"><label>Aula<select name="video_id" required><option value="vid-capta-01">Captador • Primeira abordagem</option><option value="vid-capta-02">Captador • Qualificação</option><option value="vid-liner-01">Liner • Rapport</option><option value="vid-liner-02">Liner • Diagnóstico</option><option value="vid-closer-01">Closer • Negociação</option><option value="vid-closer-02">Closer • Pós-venda</option></select></label><label>URL do vídeo (YouTube/Vimeo)<input type="url" name="video_url" placeholder="https://www.youtube.com/watch?v=..." required></label><button class="primary-btn" type="submit">Publicar</button></form>
   <div class="notice">O acesso de líderes exige conta cadastrada e atribuição explícita. Os indicadores mostram progresso registrado, não frequência de acesso.</div>`;
+  document.getElementById('videoManage').onsubmit=editVideoUrl;
   document.getElementById('roomAssignment').onsubmit=assignRoom;
 }
 
@@ -585,6 +589,7 @@ function renderRoute(){
   else if(r.startsWith('modulo-'))moduleView(r.replace('modulo-',''));
   else if(r==='simulador')simulador();
   else if(r==='laboratorio')laboratorio();
+  else if(r==='videoaulas')videoAulas();
   else if(r==='ranking')ranking();
   else if(r==='perfil')perfil();
   else if(r==='certificado')certificado();
