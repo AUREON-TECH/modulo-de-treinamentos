@@ -1,6 +1,6 @@
-# CAPTA 360 — Central de Captação e Vendas
+# CAPTA EVOLVE — Educação em Captação e Vendas
 
-PWA para consulta de processos comerciais, operação, captação, atendimento e vendas, com trilhas de treinamento para uso no celular e desktop.
+PWA educacional para ensinar, aprender e evoluir em captação e vendas, com trilhas de treinamento, simulações e consulta de processos para uso no celular e desktop.
 
 ## Recursos atuais
 - Dashboard de evolução
