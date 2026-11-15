@@ -36,7 +36,7 @@
   window.addEventListener('online',refreshRegistration);
 
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('sw.js?v=11-capta-evolve',{updateViaCache:'none'})
+    navigator.serviceWorker.register('sw.js?v=12-capta-evolve-lab',{updateViaCache:'none'})
       .then(registration=>{
         registrationRef=registration;
         return registration.update();
