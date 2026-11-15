@@ -185,7 +185,7 @@ let deferredPrompt=null;
 let authMode='login';
 
 let S={
-  session:null,user:null,profile:null,isManager:false,
+  session:null,user:null,profile:null,isManager:false,isSupervisor:false,
   progress:new Set(),quiz:{},sim:{hits:0,total:0},
   leaderboard:[],certificates:[]
 };
@@ -201,7 +201,7 @@ const setBusy=(btn,on,label='Processando...')=>{if(!btn)return; if(on){btn.datas
 function setNav(route){
   document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===route));
   profileBtn.textContent=initials();
-  managerBtn.hidden=!S.isManager;
+  managerBtn.hidden=!(S.isManager||S.isSupervisor);
   cloudBadge.hidden=!S.session;
 }
 
@@ -298,26 +298,29 @@ async function migrateLegacy(){
 async function loadData(){
   await ensureProfile();
   await migrateLegacy();
-  const [pr,qz,sim,lb,mgr,cert]=await Promise.all([
+  const [pr,qz,sim,lb,mgr,cert,supervisor]=await Promise.all([
     db.from('capta_academy_progress').select('lesson_key,module_key,track').eq('user_id',S.user.id),
     db.from('capta_academy_quiz_results').select('*').eq('user_id',S.user.id),
     db.from('capta_academy_sim_results').select('*').eq('user_id',S.user.id).maybeSingle(),
     db.from('capta_academy_leaderboard').select('*').order('xp',{ascending:false}).limit(100),
     db.from('capta_academy_managers').select('email').maybeSingle(),
-    db.from('capta_academy_certificates').select('*').eq('user_id',S.user.id).order('issued_at',{ascending:false})
+    db.from('capta_academy_certificates').select('*').eq('user_id',S.user.id).order('issued_at',{ascending:false}),
+    db.from('capta_academy_supervisors').select('room').eq('user_id',S.user.id).maybeSingle()
   ]);
-  for(const r of [pr,qz,sim,lb,mgr,cert])if(r.error)throw r.error;
+  for(const r of [pr,qz,sim,lb,mgr,cert,supervisor])if(r.error)throw r.error;
   S.progress=new Set((pr.data||[]).map(x=>x.lesson_key));
   S.quiz=Object.fromEntries((qz.data||[]).map(x=>[x.module_key,x]));
   S.sim=sim.data||{hits:0,total:0};
   S.leaderboard=lb.data||[];
   S.isManager=!!mgr.data;
+  S.isSupervisor=!!supervisor.data;
+  S.supervisedRoom=supervisor.data?.room||null;
   S.certificates=cert.data||[];
 }
 
 async function bootSession(session){
   S.session=session;S.user=session?.user||null;
-  if(!session){S={session:null,user:null,profile:null,isManager:false,progress:new Set(),quiz:{},sim:{hits:0,total:0},leaderboard:[],certificates:[]};authScreen();return;}
+  if(!session){S={session:null,user:null,profile:null,isManager:false,isSupervisor:false,progress:new Set(),quiz:{},sim:{hits:0,total:0},leaderboard:[],certificates:[]};authScreen();return;}
   document.body.classList.remove('auth-mode');
   app.innerHTML=`<div class="loader"><div class="spinner"></div><strong>Sincronizando sua jornada...</strong></div>`;
   try{await loadData();renderRoute();}catch(err){console.error(err);authScreen('Não foi possível carregar seus dados. Tente entrar novamente.');}
@@ -468,7 +471,7 @@ function perfil(){
   <section class="card certificate-teaser"><div><div class="cert-icon">✦</div><div><strong>Nível de aprendizagem: ${level}</strong><p>Bronze: 2 módulos • Prata: 4 módulos • Ouro: 6 módulos completos. Distintivo de progresso, não certificado oficial.</p></div></div><a href="#certificado" class="secondary-btn">Ver certificação</a></section>
   <div class="section-head"><div><h2>Configurações</h2><p>Seu nome e trilha podem ser alterados a qualquer momento.</p></div></div>
   <form id="profileForm" class="card form-card"><label>Nome<input name="name" value="${safe(S.profile.display_name)}" required maxlength="80" /></label><label>Trilha atual<select name="track">${Object.keys(TRACK_LABELS).map(k=>`<option value="${k}" ${S.profile.track===k?'selected':''}>${TRACK_LABELS[k]}</option>`).join('')}</select></label><button class="primary-btn">Salvar alterações</button></form>
-  <section class="card action-list"><button onclick="location.hash='certificado'"><span>✦</span><div><strong>${cert?'Meu certificado':'Certificação'}</strong><small>${cert?'Certificado emitido':'Veja os requisitos da trilha'}</small></div><b>›</b></button>${S.isManager?`<button onclick="location.hash='gestor'"><span>▦</span><div><strong>Painel do Gestor</strong><small>Acompanhe equipe e progresso</small></div><b>›</b></button>`:''}<button class="danger-action" onclick="logout()"><span>↪</span><div><strong>Sair da conta</strong><small>Seu progresso continuará salvo</small></div><b>›</b></button></section>`;
+  <section class="card action-list"><button onclick="location.hash='certificado'"><span>✦</span><div><strong>${cert?'Meu certificado':'Certificação'}</strong><small>${cert?'Certificado emitido':'Veja os requisitos da trilha'}</small></div><b>›</b></button>${(S.isManager||S.isSupervisor)?`<button onclick="location.hash='gestor'"><span>▦</span><div><strong>Painel do Gestor</strong><small>Acompanhe equipe e progresso</small></div><b>›</b></button>`:''}<button class="danger-action" onclick="logout()"><span>↪</span><div><strong>Sair da conta</strong><small>Seu progresso continuará salvo</small></div><b>›</b></button></section>`;
   document.querySelector('#profileForm').onsubmit=saveProfile;
 }
 
@@ -538,7 +541,35 @@ async function gestor(){
   <section class="manager-table card"><div class="table-head" style="grid-template-columns:1.6fr .75fr .7fr .7fr 1.2fr"><span>Profissional</span><span>Trilha</span><span>Aulas</span><span>Provas</span><span>Situação</span></div>
   ${rows.map(v=>`<div class="table-row" style="grid-template-columns:1.6fr .75fr .7fr .7fr 1.2fr"><span><strong>${safe(v.p.display_name||v.r?.display_name||'Profissional')}</strong></span><span>${safe(trackLabel(v.p.track))}</span><span>${Number(v.r?.lessons_completed||0)}</span><span>${Number(v.r?.quizzes_passed||0)}</span><span>${status(v)}</span></div>`).join('')||'<div class="empty">Nenhum profissional cadastrado.</div>'}</section>
   <div class="section-head"><div><h2>Distribuição da equipe</h2><p>Trilhas cadastradas: Captador, Liner e Closer.</p></div></div><section class="track-cards">${Object.keys(TRACK_LABELS).map(k=>`<div class="card"><small>${TRACK_LABELS[k]}</small><strong>${ps.filter(p=>p.track===k).length}</strong><span>profissionais</span></div>`).join('')}</section>
-  <div class="notice">Os indicadores mostram o progresso registrado, não a frequência de acesso nem a qualidade real da atuação. O acesso de líderes depende de permissão autorizada no banco de dados.</div>`;
+  <div class="section-head"><div><h2>Gestão das salas e lideranças</h2><p>Vincule contas já cadastradas à sala e conceda supervisão somente aos líderes autorizados.</p></div></div>
+  <form id="roomAssignment" class="card form-card" style="grid-template-columns:1.5fr 1fr 1fr auto"><label>E-mail da conta<input type="email" name="email" placeholder="profissional@empresa.com" required></label><label>Sala<select name="room"><option>DREAM HOUSE</option><option>ROMANTIC</option></select></label><label>Tipo<select name="type"><option value="member">Profissional</option><option value="leader">Líder</option></select></label><button class="primary-btn" type="submit">Autorizar</button></form>
+  <div class="notice">O acesso de líderes exige conta cadastrada e atribuição explícita. Os indicadores mostram progresso registrado, não frequência de acesso.</div>`;
+  document.getElementById('roomAssignment').onsubmit=assignRoom;
+}
+
+
+async function supervisorPanel(){
+ if(!S.isSupervisor&&!S.isManager){location.hash='home';return}
+ setNav('');app.innerHTML='<div class="loader"><div class="spinner"></div><strong>Carregando sua equipe...</strong></div>';
+ const {data,error}=await db.rpc('capta_academy_room_report');
+ if(error){app.innerHTML='<div class="empty">Acesso aos dados não autorizado ou indisponível.</div>';return}
+ const list=(data||[]).filter(v=>S.isManager||v.room===S.supervisedRoom);
+ const total=list.length,started=list.filter(v=>Number(v.lessons_completed)>0).length;
+ app.innerHTML=`<section class="hero compact"><div class="eyebrow">CAPTA EVOLVE • PAINEL DE LIDERANÇA</div><h1>${safe(S.supervisedRoom||'Equipes')}</h1><p>Desenvolvimento dos profissionais vinculados à sua sala. Os dados só aparecem após a atribuição autorizada pelo gestor.</p></section>
+ <section class="stats mini"><div class="stat-card"><small>Profissionais</small><strong>${total}</strong></div><div class="stat-card"><small>Começaram</small><strong>${started}</strong></div><div class="stat-card"><small>Aguardam início</small><strong>${total-started}</strong></div></section>
+ <div class="section-head"><div><h2>Desenvolvimento da equipe</h2><p>Aulas e avaliações aprovadas.</p></div></div>
+ <section class="manager-table card"><div class="table-head" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr"><span>Profissional</span><span>Função</span><span>Aulas</span><span>Provas</span><span>Nota média</span></div>
+ ${list.map(v=>`<div class="table-row" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr"><span>${safe(v.display_name)}</span><span>${safe(trackLabel(v.track))}</span><span>${Number(v.lessons_completed)}</span><span>${Number(v.quizzes_passed)}</span><span>${v.avg_score==null?'—':Number(v.avg_score)+'%'}</span></div>`).join('')||'<div class="empty">Nenhum profissional foi atribuído a esta sala ainda.</div>'}</section>`;
+}
+async function assignRoom(e){
+ e.preventDefault();if(!S.isManager)return;
+ const f=new FormData(e.currentTarget),btn=e.currentTarget.querySelector('button');
+ const email=String(f.get('email')||'').trim(),room=String(f.get('room')||''),leader=String(f.get('type'))==='leader';
+ setBusy(btn,true,'Atribuindo...');
+ const {error}=await db.rpc('capta_academy_assign_room',{p_email:email,p_room:room,p_as_leader:leader});
+ setBusy(btn,false);
+ toast(error?(String(error.message).includes('account_not_found')?'Conta não encontrada. A pessoa precisa criar acesso primeiro.':'Não foi possível atribuir. Verifique permissões.'):'Atribuição salva com sucesso.',error?'error':'success');
+ if(!error)e.currentTarget.reset();
 }
 
 function setRankFilter(k){window.__rankTrack=k;ranking();}
@@ -557,7 +588,7 @@ function renderRoute(){
   else if(r==='ranking')ranking();
   else if(r==='perfil')perfil();
   else if(r==='certificado')certificado();
-  else if(r==='gestor')gestor();
+  else if(r==='gestor')S.isManager?gestor():S.isSupervisor?supervisorPanel():home();
   else home();
 }
 
