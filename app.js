@@ -470,6 +470,7 @@ function perfil(){
   app.innerHTML=`<section class="profile-hero card"><div class="profile-avatar">${initials()}</div><div><div class="eyebrow">${trackLabel(S.profile.track).toUpperCase()}</div><h1>${safe(S.profile.display_name)}</h1><p>${safe(S.user.email)}</p></div></section>
   <section class="stats mini"><div class="stat-card"><small>XP</small><strong>${t.xp.toLocaleString('pt-BR')}</strong></div><div class="stat-card"><small>Aulas</small><strong>${t.done}</strong></div><div class="stat-card"><small>Módulos</small><strong>${t.modulesDone}/${modules().length}</strong></div></section>
   <section class="card certificate-teaser"><div><div class="cert-icon">✦</div><div><strong>Nível de aprendizagem: ${level}</strong><p>Bronze: 2 módulos • Prata: 4 módulos • Ouro: 6 módulos completos. Distintivo de progresso, não certificado oficial.</p></div></div><a href="#certificado" class="secondary-btn">Ver certificação</a></section>
+  <section class="card certificate-teaser" style="margin-top:14px"><div><div class="cert-icon">✦</div><div><strong>Certificação por níveis</strong><p>Emita certificados Bronze, Prata e Ouro após cumprir os requisitos de cada etapa.</p></div></div><a href="#niveis" class="primary-btn">Meus níveis</a></section>
   <div class="section-head"><div><h2>Configurações</h2><p>Seu nome e trilha podem ser alterados a qualquer momento.</p></div></div>
   <form id="profileForm" class="card form-card"><label>Nome<input name="name" value="${safe(S.profile.display_name)}" required maxlength="80" /></label><label>Trilha atual<select name="track">${Object.keys(TRACK_LABELS).map(k=>`<option value="${k}" ${S.profile.track===k?'selected':''}>${TRACK_LABELS[k]}</option>`).join('')}</select></label><button class="primary-btn">Salvar alterações</button></form>
   <section class="card action-list"><button onclick="location.hash='certificado'"><span>✦</span><div><strong>${cert?'Meu certificado':'Certificação'}</strong><small>${cert?'Certificado emitido':'Veja os requisitos da trilha'}</small></div><b>›</b></button>${(S.isManager||S.isSupervisor)?`<button onclick="location.hash='gestor'"><span>▦</span><div><strong>Painel do Gestor</strong><small>Acompanhe equipe e progresso</small></div><b>›</b></button>`:''}<button class="danger-action" onclick="logout()"><span>↪</span><div><strong>Sair da conta</strong><small>Seu progresso continuará salvo</small></div><b>›</b></button></section>`;
@@ -552,6 +553,29 @@ async function gestor(){
 }
 
 
+
+async function certificadosNivel(){
+ setNav('perfil');app.innerHTML='<div class="loader"><div class="spinner"></div><strong>Consultando suas certificações...</strong></div>';
+ const {data,error}=await db.from('capta_academy_level_certificates').select('*').eq('user_id',S.user.id).eq('track',S.profile.track);
+ if(error){app.innerHTML='<div class="empty">Não foi possível consultar certificados.</div>';return}
+ const done=totals().modulesDone,certs=data||[];
+ const levels=[['Bronze',2],['Prata',4],['Ouro',6]];
+ app.innerHTML=`<section class="hero compact"><div class="eyebrow">CAPTA EVOLVE • CERTIFICAÇÕES</div><h1>Seus níveis de evolução</h1><p>Certificações emitidas pelo servidor conforme módulos e avaliações aprovadas. Os certificados oficiais da trilha permanecem disponíveis separadamente.</p></section>
+ <section class="grid">${levels.map(([level,n])=>{const cert=certs.find(x=>x.level===level);return `<article class="card module-card"><div><div class="module-num">NÍVEL ${level.toUpperCase()}</div><h3>${level}</h3><p>Concluir pelo menos ${n} módulos, com todas as aulas e avaliações aprovadas.</p><div class="module-meta"><span class="pill">${done}/${n} módulos</span><span class="pill">${cert?'Certificado emitido':done>=n?'Pronto para validar':'Em andamento'}</span></div>${cert?`<p>Código: <strong>${safe(cert.certificate_code)}</strong></p>`:''}</div><button class="primary-btn" onclick="${cert?`printLevelCert('${level}')`:`issueLevel('${level}')`}" ${!cert&&done<n?'disabled':''}>${cert?'Ver / imprimir':'Solicitar certificado'}</button></article>`}).join('')}</section>
+ <section class="card certificate-teaser" style="margin-top:20px"><div><div class="cert-icon">✦</div><div><strong>Certificação completa</strong><p>Conclua todos os módulos para emitir também seu certificado de trilha.</p></div></div><a href="#certificado" class="secondary-btn">Certificado final</a></section>`;
+}
+async function issueLevel(level){
+ const {error}=await db.rpc('capta_academy_issue_level',{p_track:S.profile.track,p_level:level});
+ if(error){toast(String(error.message).includes('level_not_completed')?'Requisitos ainda não cumpridos.':'Não foi possível emitir o certificado.','error');return}
+ toast('Certificado '+level+' emitido!','success');certificadosNivel();
+}
+async function printLevelCert(level){
+ const {data,error}=await db.from('capta_academy_level_certificates').select('*').eq('user_id',S.user.id).eq('track',S.profile.track).eq('level',level).maybeSingle();
+ if(error||!data){toast('Certificado não encontrado.','error');return}
+ setNav('perfil');
+ app.innerHTML=`<section class="certificate-page"><div class="certificate card"><div class="cert-top"><span class="brand-mark big">C</span><div><b>CAPTA EVOLVE</b><small>UNIVERSIDADE CORPORATIVA</small></div></div><div class="cert-seal">✦</div><p class="cert-label">CERTIFICADO DE EVOLUÇÃO</p><h1>${safe(S.profile.display_name)}</h1><p>Concluiu os requisitos de formação do nível</p><h2>${safe(level.toUpperCase())}</h2><p>Trilha: ${safe(trackLabel(data.track))}</p><div class="cert-footer"><div><small>EMISSÃO</small><strong>${new Date(data.issued_at).toLocaleDateString('pt-BR')}</strong></div><div><small>CÓDIGO</small><strong>${safe(data.certificate_code)}</strong></div></div></div><div class="cert-actions"><a href="#niveis" class="secondary-btn">Voltar</a><button class="primary-btn" onclick="window.print()">Imprimir / salvar PDF</button></div></section>`;
+}
+
 async function supervisorPanel(){
  if(!S.isSupervisor&&!S.isManager){location.hash='home';return}
  setNav('');app.innerHTML='<div class="loader"><div class="spinner"></div><strong>Carregando sua equipe...</strong></div>';
@@ -593,6 +617,7 @@ function renderRoute(){
   else if(r==='ranking')ranking();
   else if(r==='perfil')perfil();
   else if(r==='certificado')certificado();
+  else if(r==='niveis')certificadosNivel();
   else if(r==='gestor')S.isManager?gestor():S.isSupervisor?supervisorPanel():home();
   else home();
 }
