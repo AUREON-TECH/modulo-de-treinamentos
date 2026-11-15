@@ -1,8 +1,8 @@
-# Capta Academy
+# CAPTA 360 — Central de Captação e Vendas
 
-PWA de treinamento de captação criado para uso em celular e desktop.
+PWA para consulta de processos comerciais, operação, captação, atendimento e vendas, com trilhas de treinamento para uso no celular e desktop.
 
-## O que já existe
+## Recursos atuais
 - Dashboard de evolução
 - 6 módulos de treinamento
 - 18 aulas práticas
@@ -22,3 +22,8 @@ PWA de treinamento de captação criado para uso em celular e desktop.
 - Upload de vídeos, PDFs e comunicados
 - Certificado por trilha concluída
 - Trilhas separadas por Captador, Liner e Closer
+
+## Central de operação
+A tela inicial reúne referências de captação, qualificação, passagem para o liner, atendimento, negociação ética e acompanhamento. A área de cursos, simulador, ranking e certificados foi preservada.
+
+As orientações operacionais são referências; valide regras, números e campanhas vigentes com a gestão antes de aplicar.
