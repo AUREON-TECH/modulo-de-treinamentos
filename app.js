@@ -142,7 +142,13 @@ closer:[
 function moduleQuestions(m){
   const [track,number]=m.id.split('-'),extra=KNOWLEDGE_CHECKS[track]?.[Number(number)-1];
   const cases=ADVANCED_CHECKS[track]?.[Number(number)-1]||[];
-  return [m.quiz,...(extra?[{q:extra[0],o:extra[1],a:extra[2]}]:[]),...cases.map(x=>({q:x[0],o:x[1],a:x[2]}))];
+  const original=[m.quiz,...(extra?[{q:extra[0],o:extra[1],a:extra[2]}]:[]),...cases.map(x=>({q:x[0],o:x[1],a:x[2]}))];
+  // Revisão interdisciplinar da mesma função: 10 perguntas distintas por prova.
+  const review=ADVANCED_CHECKS[track].flatMap((group,i)=>i===Number(number)-1?[]:group.map(x=>({q:x[0],o:x[1],a:x[2]})));
+  const seen=new Set(original.map(q=>q.q.trim()));
+  const questions=[...original];
+  for(const q of review){if(questions.length>=10)break;if(!seen.has(q.q.trim())){questions.push(q);seen.add(q.q.trim());}}
+  return questions;
 }
 let currentExam=null;
 function displayExam(){
@@ -152,7 +158,7 @@ function displayExam(){
     <div class="progress-track"><div class="progress-bar" style="width:${Math.round(index/questions.length*100)}%"></div></div>
     <h2>${safe(q.q)}</h2>
     ${q.o.map((o,i)=>`<button class="answer-btn" onclick="answerQuiz('${m.id}',${i})">${String.fromCharCode(65+i)}. ${safe(o)}</button>`).join('')}
-    <p>Nota mínima: 70%. Respostas são registradas após a conclusão da avaliação.</p>
+    <p>Nota mínima: 70%. A prova inclui revisão de conteúdos da mesma função. Respostas são registradas após a conclusão.</p>
     <button class="ghost-btn" onclick="quizDialog.close()">Fechar</button>`;
 }
 
@@ -515,13 +521,22 @@ async function gestor(){
     db.from('capta_academy_certificates').select('user_id,track,issued_at')
   ]);
   if(profiles.error||leader.error||certs.error){app.innerHTML='<div class="empty">Não foi possível carregar o painel do gestor.</div>';return;}
-  const ps=profiles.data||[],lb=leader.data||[],cs=certs.data||[],avg=lb.length?Math.round(lb.reduce((n,x)=>n+x.xp,0)/lb.length):0;
-  app.innerHTML=`<section class="hero compact manager-hero"><div class="eyebrow">SALA DO GESTOR</div><h1>Academy Control Center</h1><p>Acompanhe capacitação, evolução e certificações de toda a equipe.</p></section>
-  <section class="stats"><div class="stat-card"><small>Profissionais</small><strong>${ps.length}</strong></div><div class="stat-card"><small>XP médio</small><strong>${avg.toLocaleString('pt-BR')}</strong></div><div class="stat-card"><small>Certificados</small><strong>${cs.length}</strong></div><div class="stat-card"><small>Quizzes aprovados</small><strong>${lb.reduce((n,x)=>n+x.quizzes_passed,0)}</strong></div></section>
-  <div class="section-head"><div><h2>Equipe</h2><p>Visão consolidada das trilhas e desempenho.</p></div></div>
-  <section class="manager-table card"><div class="table-head"><span>Profissional</span><span>Trilha</span><span>Aulas</span><span>Quizzes</span><span>XP</span></div>
-  ${lb.map((r,i)=>`<div class="table-row"><span><b>#${i+1}</b> ${safe(r.display_name)}</span><span>${trackLabel(r.track)}</span><span>${r.lessons_completed}</span><span>${r.quizzes_passed}</span><span><strong>${Number(r.xp).toLocaleString('pt-BR')}</strong></span></div>`).join('')||'<div class="empty">Nenhum profissional iniciou a Academy ainda.</div>'}</section>
-  <div class="section-head"><div><h2>Distribuição por trilha</h2></div></div><section class="track-cards">${Object.keys(TRACK_LABELS).map(k=>`<div class="card"><small>${TRACK_LABELS[k]}</small><strong>${ps.filter(p=>p.track===k).length}</strong><span>profissionais</span></div>`).join('')}</section>`;
+  const ps=profiles.data||[],lb=leader.data||[],cs=certs.data||[];
+  const avg=lb.length?Math.round(lb.reduce((n,x)=>n+Number(x.xp||0),0)/lb.length):0;
+  const byUser=new Map(lb.map(r=>[r.user_id,r]));
+  const rows=ps.map(p=>({p,r:byUser.get(p.id)||null})).sort((a,b)=>Number(a.r?.xp||0)-Number(b.r?.xp||0));
+  const noStart=rows.filter(v=>!Number(v.r?.lessons_completed||0)).length;
+  const lowProgress=rows.filter(v=>Number(v.r?.lessons_completed||0)>0&&Number(v.r?.quizzes_passed||0)<2).length;
+  const certified=new Set(cs.map(c=>c.user_id)).size;
+  const status=v=>!Number(v.r?.lessons_completed||0)?'Não iniciou':Number(v.r?.quizzes_passed||0)<2?'Precisa acompanhamento':Number(v.r?.quizzes_passed||0)>=6?'Trilha avançada':'Em evolução';
+  app.innerHTML=`<section class="hero compact manager-hero"><div class="eyebrow">CAPTA EVOLVE • GESTÃO DE APRENDIZAGEM</div><h1>Painel de desenvolvimento</h1><p>Visão de acompanhamento com os dados autorizados da plataforma. Identifique quem precisa de apoio e acompanhe certificações.</p></section>
+  <section class="stats"><div class="stat-card"><small>Profissionais</small><strong>${ps.length}</strong></div><div class="stat-card"><small>Ainda não iniciaram</small><strong>${noStart}</strong></div><div class="stat-card"><small>Precisam de apoio</small><strong>${lowProgress}</strong></div><div class="stat-card"><small>Certificados emitidos</small><strong>${cs.length}</strong></div></section>
+  <section class="card certificate-teaser"><div><div class="cert-icon">◎</div><div><strong>Indicadores de aprendizagem</strong><p>XP médio: ${avg.toLocaleString('pt-BR')} • ${lb.reduce((n,x)=>n+Number(x.quizzes_passed||0),0)} provas aprovadas • ${certified} profissionais certificados</p></div></div><button class="secondary-btn" onclick="gestor()">Atualizar painel</button></section>
+  <div class="section-head"><div><h2>Acompanhamento individual</h2><p>Profissionais com menor avanço aparecem primeiro. Status calculado a partir de aulas e quizzes registrados.</p></div></div>
+  <section class="manager-table card"><div class="table-head" style="grid-template-columns:1.6fr .75fr .7fr .7fr 1.2fr"><span>Profissional</span><span>Trilha</span><span>Aulas</span><span>Provas</span><span>Situação</span></div>
+  ${rows.map(v=>`<div class="table-row" style="grid-template-columns:1.6fr .75fr .7fr .7fr 1.2fr"><span><strong>${safe(v.p.display_name||v.r?.display_name||'Profissional')}</strong></span><span>${safe(trackLabel(v.p.track))}</span><span>${Number(v.r?.lessons_completed||0)}</span><span>${Number(v.r?.quizzes_passed||0)}</span><span>${status(v)}</span></div>`).join('')||'<div class="empty">Nenhum profissional cadastrado.</div>'}</section>
+  <div class="section-head"><div><h2>Distribuição da equipe</h2><p>Trilhas cadastradas: Captador, Liner e Closer.</p></div></div><section class="track-cards">${Object.keys(TRACK_LABELS).map(k=>`<div class="card"><small>${TRACK_LABELS[k]}</small><strong>${ps.filter(p=>p.track===k).length}</strong><span>profissionais</span></div>`).join('')}</section>
+  <div class="notice">Os indicadores mostram o progresso registrado, não a frequência de acesso nem a qualidade real da atuação. O acesso de líderes depende de permissão autorizada no banco de dados.</div>`;
 }
 
 function setRankFilter(k){window.__rankTrack=k;ranking();}
