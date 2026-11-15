@@ -1,5 +1,5 @@
 const CACHE_PREFIX='capta-academy-';
-const CACHE=`${CACHE_PREFIX}v12-capta-evolve-lab`;
+const CACHE=`${CACHE_PREFIX}v13-capta-universidade`;
 const CORE=['./','./index.html','./styles.css','./app.js','./laboratorio.js','./pwa.js','./manifest.webmanifest','./icon.svg','./pwa-icon-192.png','./pwa-icon-512.png','./pwa-icon-maskable-512.png'];
 const CORE_PATHS=new Set(CORE.map(path=>new URL(path,self.registration.scope).pathname));
 const SENSITIVE_PARAMS=['token','access_token','refresh_token','password','passwd','session','session_id','api_key','apikey','code','credential','credentials','secret'];
